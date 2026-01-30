@@ -28,7 +28,7 @@ authMiddleware.checkUserAuth = async (req, res, next) => {
             }
 
             // Check if user is active
-            if (user.status !== 'active') {
+            if (!user.isActive) {
                 return res.error(403, false, "Your account is not active. Please contact administrator.");
             }
 

@@ -1,4 +1,4 @@
-const user = require('./user.model');
+const User = require('./user.model');
 const quatation = require ('./quatation.model');
 const projectStage = require ('./projectStage.model');
 const project = require ('./project.model');
@@ -7,11 +7,11 @@ const design = require ('./design.model');
 const client = require ('./clients.model');
 
 module.exports = {
-    user,
+    User,
     quatation,
     projectStage,
     project,
     leads,
     design,
     client        
-}
+};

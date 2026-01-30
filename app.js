@@ -25,7 +25,7 @@ app.use("/api/admin", adminRoutes);
 // 404 Not Found middleware - MUST be after all routes
 app.use(handleNotFound);
 
-// Error handling middleware - MUST be last
+// Error handling middleware 
 app.use(errorHandler);
 
 async function startServer() {

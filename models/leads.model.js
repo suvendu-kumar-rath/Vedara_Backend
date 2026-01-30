@@ -15,6 +15,10 @@ const Lead = sequelize.define("Lead",{
     type:DataTypes.ENUM("new","contacted","converted","discarded"),
     defaultValue:"new"
   },
+  budget_range: DataTypes.STRING,
+  property_type: DataTypes.STRING,
+  city: DataTypes.STRING,
+  notes: DataTypes.TEXT,
   assigned_to: DataTypes.INTEGER
 },{
   tableName:"leads",
