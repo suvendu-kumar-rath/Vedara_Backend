@@ -38,7 +38,8 @@ adminController.login = async (req, res) => {
   }
 };
 
-  //for admin only ---create an user
+
+ //for admin only ---create an user
 adminController.createUser = async (req, res) => {
   try {
     const { username, email, mobile, password, role } = req.body;
@@ -78,7 +79,9 @@ adminController.createUser = async (req, res) => {
     return res.error(500, false, 'User creation failed', err.message);
   }
 };
-//for admin and leadManager to create an Lead
+
+
+  //for admin and leadManager to create an Lead
 adminController.addLead = async (req, res) => {
   try {
     const { name, phone, email, source, status, assigned_to, budgetRange, propertyType, city, notes } = req.body;
@@ -98,8 +101,8 @@ adminController.addLead = async (req, res) => {
       email: email ? String(email).trim().toLowerCase() : null,
       source: source ? String(source).trim() : null,
       status: finalStatus,
-      budget_range: budgetRange ? String(budgetRange).trim() : null,
-      property_type: propertyType ? String(propertyType).trim() : null,
+      budgetRange: budgetRange ? String(budgetRange).trim() : null,
+      propertyType: propertyType ? String(propertyType).trim() : null,
       city: city ? String(city).trim() : null,
       notes: notes ? String(notes).trim() : null,
       assigned_to: assignedTo || null
@@ -111,8 +114,8 @@ adminController.addLead = async (req, res) => {
       email: lead.email,
       source: lead.source,
       status: lead.status,
-      budget_range: lead.budget_range,
-      property_type: lead.property_type,
+      budgetRange: lead.budgetRange,
+      propertyType: lead.propertyType,
       city: lead.city,
       notes: lead.notes,
       assigned_to: lead.assigned_to
@@ -143,7 +146,7 @@ adminController.getLeads = async (req, res) => {
 adminController.convertLeadToClient = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, phone, email, address } = req.body;
+    const { name, phone, email, address } = req.body || {};
     if (!id) {
       return res.error(400, false, 'Lead id required');
     }
