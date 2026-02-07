@@ -11,7 +11,7 @@ const cors = require('cors');
 const app = express();
 const port = process.env.APP_PORT;
 const baseUrl = process.env.BASE_URL;
-// CORS configuration .................
+  // CORS configuration ..................................
 app.use(cors({
   origin: '*', // Allow all origins, or specify allowed origins
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
