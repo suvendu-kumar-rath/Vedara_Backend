@@ -18,7 +18,7 @@ adminController.login = async (req, res) => {
 
     let user = await User.findOne({ where: { email: normalizedEmail } });
 
-    // Bootstrap default admin if logging with admin email and it doesn't exist
+    //default admin if logging with admin email and it doesn't exist
     if (!user && normalizedEmail === 'vedara@gmail.com') {
       const [admin] = await User.findOrCreate({
         where: { email: 'vedara@gmail.com' },
@@ -165,7 +165,6 @@ adminController.addLead = async (req, res) => {
   }
 };
 
-
 //get all Leads................................................
 adminController.getLeads = async (req, res) => {
   try {
@@ -187,6 +186,7 @@ adminController.getLeads = async (req, res) => {
     return res.error(500, false, "Failed to fetch leads", err.message);
   }
 };
+
 //for admin and leadManager to convert an Lead to Client
 adminController.convertLeadToClient = async (req, res) => {
   try {
@@ -299,6 +299,7 @@ adminController.createQuotation = async (req, res) => {
     return res.error(500, false, "Quotation creation failed", err.message);
   }
 };
+
 //get all employees except admin
 adminController.getEmployees = async (req, res) => {
   try {
@@ -320,6 +321,7 @@ adminController.getEmployees = async (req, res) => {
     return res.error(500, false, "Failed to fetch employees", err.message);
   }
 };
+
 //get all quotations
 adminController.getQuotations = async (req, res) => {
   try {
