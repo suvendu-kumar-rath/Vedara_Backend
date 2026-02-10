@@ -184,7 +184,7 @@ adminController.getLeads = async (req, res) => {
     return res.success(200, true, "Leads fetched", { items: leads });
   } catch (err) {
     return res.error(500, false, "Failed to fetch leads", err.message);
-  }
+  } 
 };
 
 //for admin and leadManager to convert an Lead to Client
@@ -331,6 +331,61 @@ adminController.getQuotations = async (req, res) => {
     return res.success(200, true, "Quotations fetched", { items: quotations });
   } catch (err) {
     return res.error(500, false, "Failed to fetch quotations", err.message);
+  }
+};
+
+adminController.updateUserRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+    if (!id || !role) {
+      return res.error(400, false, 'id and role are required');
+    }
+    const user = await User.findByPk(Number(id));
+    if (!user) {
+      return res.error(404, false, 'User not found');
+    }
+    if (user.role === 'admin') {
+      return res.error(403, false, 'Cannot modify admin role');
+    }
+    const normalizedRole = String(role).trim().toLowerCase();
+    const roleMap = { designer: 'designer', sales: 'lead', lead: 'lead' };
+    const chosenRole = roleMap[normalizedRole];
+    if (!chosenRole) {
+      return res.error(400, false, 'Invalid role');
+    }
+    user.role = chosenRole;
+    await user.save();
+    return res.success(200, true, 'User role updated', {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      mobile: user.mobile,
+      role: user.role,
+      status: user.isActive ? 'active' : 'inactive'
+    });
+  } catch (err) {
+    return res.error(500, false, 'Failed to update user role', err.message);
+  }
+};
+
+adminController.deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.error(400, false, 'User id required');
+    }
+    const user = await User.findByPk(Number(id));
+    if (!user) {
+      return res.error(404, false, 'User not found');
+    }
+    if (user.role === 'admin') {
+      return res.error(403, false, 'Cannot delete admin');
+    }
+    await user.destroy();
+    return res.success(200, true, 'User deleted', { id: Number(id) });
+  } catch (err) {
+    return res.error(500, false, 'Failed to delete user', err.message);
   }
 };
 

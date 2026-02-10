@@ -6,13 +6,15 @@ const { checkRole, checkUserAuth } = require('../middlewares/auth.middleware');
 
 router.post("/loginforall", adminController.login);
 router.post("/users", checkUserAuth, checkRole('admin'), adminController.createUser);
-router.post("/leads", checkUserAuth, checkRole(['admin','leadManager']), adminController.addLead);
-router.get("/leads", checkUserAuth, checkRole(['admin','leadManager']), adminController.getLeads);
+router.post("/leads", checkUserAuth, checkRole(['admin','lead']), adminController.addLead);
+router.get("/leads", checkUserAuth, checkRole(['admin','lead']), adminController.getLeads);
 
-router.post("/leads/:id/convert", checkUserAuth, checkRole(['admin','leadManager']), adminController.convertLeadToClient);
-router.post("/quotations", checkUserAuth, checkRole(['admin','leadManager']), adminController.createQuotation);
-router.get("/quotations", checkUserAuth, checkRole(['admin','leadManager']), adminController.getQuotations);
+router.post("/leads/:id/convert", checkUserAuth, checkRole(['admin','lead']), adminController.convertLeadToClient);
+router.post("/quotations", checkUserAuth, checkRole(['admin','lead']), adminController.createQuotation);
+router.get("/quotations", checkUserAuth, checkRole(['admin','lead']), adminController.getQuotations);
 router.get("/employees", checkUserAuth, checkRole('admin'), adminController.getEmployees);
+router.put("/users/:id/role", checkUserAuth, checkRole('admin'), adminController.updateUserRole);
+router.delete("/users/:id", checkUserAuth, checkRole('admin'), adminController.deleteUser);
 
 module.exports = router;
 
