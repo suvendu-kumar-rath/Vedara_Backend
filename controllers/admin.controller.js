@@ -124,10 +124,7 @@ adminController.addLead = async (req, res) => {
     if (!name || (!phone && !email)) {
       return res.error(400, false, "Missing required fields");
     }
-    let assignedTo = assigned_to ? Number(assigned_to) : undefined;
-    if (!assignedTo && req.user && req.user.id) {
-      assignedTo = req.user.id;
-    }
+   
     const allowedStatuses = ["new", "contacted", "converted", "discarded"];
     const normalizedStatus = status
       ? String(status).trim().toLowerCase()
@@ -145,7 +142,7 @@ adminController.addLead = async (req, res) => {
       propertyType: propertyType ? String(propertyType).trim() : null,
       city: city ? String(city).trim() : null,
       notes: notes ? String(notes).trim() : null,
-      assigned_to: assignedTo || null,
+      assigned_to: assigned_to ,
     });
     return res.success(201, true, "Lead created", {
       id: lead.id,
@@ -386,6 +383,38 @@ adminController.deleteUser = async (req, res) => {
     return res.success(200, true, 'User deleted', { id: Number(id) });
   } catch (err) {
     return res.error(500, false, 'Failed to delete user', err.message);
+  }
+};
+
+adminController.ConvertedClient = async (req, res) => {
+  try {
+    const { Op } = require('sequelize');
+    const convertible = await Lead.findAll({
+      where: { status: { [Op.in]: ['new','contacted'] } },
+      order: [["createdAt","DESC"]]
+    });
+
+    const convertedLeads = await Lead.findAll({ where: { status: 'converted' } });
+    const emails = convertedLeads.map(l => l.email).filter(e => !!e).map(e => String(e).toLowerCase());
+    const phones = convertedLeads.map(l => l.phone).filter(p => !!p);
+
+    let convertedClients = [];
+    if (emails.length || phones.length) {
+      const orConds = [];
+      if (emails.length) orConds.push({ email: { [Op.in]: emails } });
+      if (phones.length) orConds.push({ phone: { [Op.in]: phones } });
+      convertedClients = await Client.findAll({
+        where: { [Op.or]: orConds },
+        order: [["createdAt","DESC"]]
+      });
+    }
+
+    return res.success(200, true, 'Conversion summary fetched', {
+      convertible,
+      convertedClients
+    });
+  } catch (err) {
+    return res.error(500, false, 'Failed to fetch conversion summary', err.message);
   }
 };
 

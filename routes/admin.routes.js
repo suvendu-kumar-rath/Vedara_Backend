@@ -15,6 +15,9 @@ router.get("/quotations", checkUserAuth, checkRole(['admin','lead']), adminContr
 router.get("/employees", checkUserAuth, checkRole('admin'), adminController.getEmployees);
 router.put("/users/:id/role", checkUserAuth, checkRole('admin'), adminController.updateUserRole);
 router.delete("/users/:id", checkUserAuth, checkRole('admin'), adminController.deleteUser);
+router.get("/leads/convertedclient", checkUserAuth, checkRole(['admin','lead']), adminController.ConvertedClient);
+
+
 
 module.exports = router;
 
