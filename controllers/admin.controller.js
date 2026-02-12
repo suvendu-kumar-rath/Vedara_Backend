@@ -162,7 +162,7 @@ adminController.addLead = async (req, res) => {
   }
 };
 
-//get all Leads................................................
+//get all Leads...................................
 adminController.getLeads = async (req, res) => {
   try {
     const { status, assigned_to } = req.query;
@@ -308,6 +308,8 @@ adminController.getEmployees = async (req, res) => {
     const items = users.map((u) => ({
       id: u.id,
       user: u.username,
+      email: u.email,
+      mobile: u.mobile,
       role: u.role,
       status: u.isActive ? "active" : "inactive",
       created: u.createdAt,
@@ -330,7 +332,7 @@ adminController.getQuotations = async (req, res) => {
     return res.error(500, false, "Failed to fetch quotations", err.message);
   }
 };
-
+//update employee role
 adminController.updateUserRole = async (req, res) => {
   try {
     const { id } = req.params;
@@ -365,7 +367,7 @@ adminController.updateUserRole = async (req, res) => {
     return res.error(500, false, 'Failed to update user role', err.message);
   }
 };
-
+//delete an employee
 adminController.deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
@@ -385,7 +387,7 @@ adminController.deleteUser = async (req, res) => {
     return res.error(500, false, 'Failed to delete user', err.message);
   }
 };
-
+//get all converted clients
 adminController.ConvertedClient = async (req, res) => {
   try {
     const { Op } = require('sequelize');
