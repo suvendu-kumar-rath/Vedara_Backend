@@ -142,7 +142,7 @@ adminController.addLead = async (req, res) => {
       propertyType: propertyType ? String(propertyType).trim() : null,
       city: city ? String(city).trim() : null,
       notes: notes ? String(notes).trim() : null,
-      assigned_to: assigned_to ,
+      assigned_to: assigned_to ? Number(assigned_to) : null,
     });
     return res.success(201, true, "Lead created", {
       id: lead.id,
@@ -177,8 +177,23 @@ adminController.getLeads = async (req, res) => {
     if (assigned_to) {
       where.assigned_to = Number(assigned_to);
     }
-    const leads = await Lead.findAll({ where, order: [["createdAt", "DESC"]] });
-    return res.success(200, true, "Leads fetched", { items: leads });
+
+    const leads = await Lead.findAll({ 
+      where, 
+      order: [["createdAt", "DESC"]],
+      include: [{
+        model: User,
+        as: 'assignedUser',
+        attributes: ['username']
+      }]
+    });
+
+    const formattedLeads = leads.map(lead => ({
+      ...lead.toJSON(),
+      assigned_to: lead.assignedUser ? lead.assignedUser.username : null
+    }));
+
+    return res.success(200, true, "Leads fetched", { items: formattedLeads });
   } catch (err) {
     return res.error(500, false, "Failed to fetch leads", err.message);
   } 
@@ -224,7 +239,7 @@ adminController.convertLeadToClient = async (req, res) => {
   }
 };
 
-//create a Quotation for a client
+//create a Quotation for a client (production-ready with scope blocks)
 adminController.createQuotation = async (req, res) => {
   try {
     const {
@@ -234,6 +249,10 @@ adminController.createQuotation = async (req, res) => {
       validUntil,
       discountPercent,
       notes,
+      projectInfo,
+      globalScope,
+      deliverables,
+      roomWiseDetails
     } = req.body;
     if (!clientId || !baseAmount) {
       return res.error(400, false, "clientId and baseAmount are required");
@@ -245,16 +264,10 @@ adminController.createQuotation = async (req, res) => {
     if (!Number.isFinite(base_amount) || base_amount <= 0) {
       return res.error(400, false, "baseAmount must be a positive number");
     }
-    if (
-      !Number.isFinite(discount_percent) ||
-      discount_percent < 0 ||
-      discount_percent > 100
-    ) {
+    if (!Number.isFinite(discount_percent) || discount_percent < 0 || discount_percent > 100) {
       return res.error(400, false, "discountPercent must be between 0 and 100");
     }
-    const final_amount = Number(
-      (base_amount * (1 - discount_percent / 100)).toFixed(2),
-    );
+    const final_amount = Number((base_amount * (1 - discount_percent / 100)).toFixed(2));
 
     let valid_until = null;
     if (validUntil) {
@@ -265,8 +278,26 @@ adminController.createQuotation = async (req, res) => {
         valid_until = new Date(`${yyyy}-${mm}-${dd}`);
       } else {
         const d = new Date(s);
-        if (!isNaN(d.getTime())) valid_until = d;
-        else valid_until = null;
+        if (!isNaN(d.getTime())) valid_until = d; else valid_until = null;
+      }
+    }
+
+    // Basic shape checks for scope blocks
+    const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v);
+    if (projectInfo && !isObj(projectInfo)) return res.error(400, false, 'projectInfo must be an object');
+    if (globalScope && !isObj(globalScope)) return res.error(400, false, 'globalScope must be an object');
+    if (deliverables && !isObj(deliverables)) return res.error(400, false, 'deliverables must be an object');
+    if (roomWiseDetails && !isObj(roomWiseDetails)) return res.error(400, false, 'roomWiseDetails must be an object');
+
+    // Minimal required fields from Project Information if provided
+    if (projectInfo) {
+      const { projectAddress, clientName, propertyType, unitType, totalCarpetAreaSqFt } = projectInfo;
+      if (!projectAddress || !clientName || !propertyType || !unitType) {
+        return res.error(400, false, 'Project Information: projectAddress, clientName, propertyType, unitType are required');
+      }
+      if (totalCarpetAreaSqFt !== undefined) {
+        const area = Number(totalCarpetAreaSqFt);
+        if (!Number.isFinite(area) || area <= 0) return res.error(400, false, 'totalCarpetAreaSqFt must be a positive number');
       }
     }
 
@@ -278,10 +309,16 @@ adminController.createQuotation = async (req, res) => {
       final_amount,
       valid_until,
       notes: notes ? String(notes).trim() : null,
-      status: "sent",
+      status: 'sent'
     });
 
-    return res.success(201, true, "Quotation created", {
+    quotation.project_info = projectInfo || null;
+    quotation.global_scope = globalScope || null;
+    quotation.deliverables = deliverables || null;
+    quotation.room_wise_details = roomWiseDetails || null;
+    await quotation.save();
+
+    return res.success(201, true, 'Quotation created', {
       id: quotation.id,
       client_id: quotation.client_id,
       project_id: quotation.project_id,
@@ -290,10 +327,14 @@ adminController.createQuotation = async (req, res) => {
       final_amount: quotation.final_amount,
       valid_until: quotation.valid_until,
       notes: quotation.notes,
-      status: quotation.status,
+      project_info: quotation.project_info,
+      global_scope: quotation.global_scope,
+      deliverables: quotation.deliverables,
+      room_wise_details: quotation.room_wise_details,
+      status: quotation.status
     });
   } catch (err) {
-    return res.error(500, false, "Quotation creation failed", err.message);
+    return res.error(500, false, 'Quotation creation failed', err.message);
   }
 };
 
@@ -387,36 +428,16 @@ adminController.deleteUser = async (req, res) => {
     return res.error(500, false, 'Failed to delete user', err.message);
   }
 };
-//get all converted clients
+
 adminController.ConvertedClient = async (req, res) => {
   try {
-    const { Op } = require('sequelize');
-    const convertible = await Lead.findAll({
-      where: { status: { [Op.in]: ['new','contacted'] } },
-      order: [["createdAt","DESC"]]
+    const leads = await Lead.findAll({
+      where: { status: "converted" },
+      order: [["createdAt", "DESC"]]
     });
-
-    const convertedLeads = await Lead.findAll({ where: { status: 'converted' } });
-    const emails = convertedLeads.map(l => l.email).filter(e => !!e).map(e => String(e).toLowerCase());
-    const phones = convertedLeads.map(l => l.phone).filter(p => !!p);
-
-    let convertedClients = [];
-    if (emails.length || phones.length) {
-      const orConds = [];
-      if (emails.length) orConds.push({ email: { [Op.in]: emails } });
-      if (phones.length) orConds.push({ phone: { [Op.in]: phones } });
-      convertedClients = await Client.findAll({
-        where: { [Op.or]: orConds },
-        order: [["createdAt","DESC"]]
-      });
-    }
-
-    return res.success(200, true, 'Conversion summary fetched', {
-      convertible,
-      convertedClients
-    });
+    return res.success(200, true, "Converted clients fetched", { items: leads });
   } catch (err) {
-    return res.error(500, false, 'Failed to fetch conversion summary', err.message);
+    return res.error(500, false, "Failed to fetch converted clients", err.message);
   }
 };
 

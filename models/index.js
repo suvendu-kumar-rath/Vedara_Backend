@@ -6,6 +6,9 @@ const leads = require ('./leads.model');
 const design = require ('./design.model');
 const client = require ('./clients.model');
 
+// Define associations
+leads.belongsTo(User, { foreignKey: 'assigned_to', as: 'assignedUser' });
+
 module.exports = {
     User,
     quatation,

@@ -17,8 +17,6 @@ router.put("/users/:id/role", checkUserAuth, checkRole('admin'), adminController
 router.delete("/users/:id", checkUserAuth, checkRole('admin'), adminController.deleteUser);
 router.get("/leads/convertedclient", checkUserAuth, checkRole(['admin','lead']), adminController.ConvertedClient);
 
-
-
 module.exports = router;
 
 
