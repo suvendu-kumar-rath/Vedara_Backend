@@ -7,7 +7,12 @@ const design = require ('./design.model');
 const client = require ('./clients.model');
 
 // Define associations
-leads.belongsTo(User, { foreignKey: 'assigned_to', as: 'assignedUser' });
+leads.belongsTo(User, {
+  foreignKey: { name: 'assigned_to', allowNull: true },
+  as: 'assignedUser',
+  onUpdate: 'CASCADE',
+  onDelete: 'SET NULL'
+});
 
 module.exports = {
     User,

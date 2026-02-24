@@ -19,7 +19,7 @@ const Lead = sequelize.define("Lead",{
   propertyType: DataTypes.STRING,
   city: DataTypes.STRING,
   notes: DataTypes.TEXT,
-  assigned_to: DataTypes.INTEGER
+  assigned_to: { type: DataTypes.INTEGER, allowNull: true }
 },{
   tableName:"leads",
   timestamps:true

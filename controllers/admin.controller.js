@@ -142,7 +142,7 @@ adminController.addLead = async (req, res) => {
       propertyType: propertyType ? String(propertyType).trim() : null,
       city: city ? String(city).trim() : null,
       notes: notes ? String(notes).trim() : null,
-      assigned_to: assigned_to ? Number(assigned_to) : null,
+      assigned_to: (assigned_to !== undefined && assigned_to !== null) ? Number(assigned_to) : null
     });
     return res.success(201, true, "Lead created", {
       id: lead.id,
