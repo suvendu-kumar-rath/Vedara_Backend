@@ -429,13 +429,45 @@ adminController.deleteUser = async (req, res) => {
   }
 };
 
+
+//delete a client...............................
+adminController.deleteClient = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.error(400, false, "Client id required");
+    }
+
+    const client = await Client.findByPk(Number(id));
+    if (!client) {
+      return res.error(404, false, "Client not found");
+    }
+
+    await client.destroy();
+    return res.success(200, true, "Client deleted", { id: Number(id) });
+  } catch (err) {
+    return res.error(500, false, "Failed to delete client", err.message);
+  }
+};
+
 adminController.ConvertedClient = async (req, res) => {
   try {
     const leads = await Lead.findAll({
       where: { status: "converted" },
-      order: [["createdAt", "DESC"]]
+      order: [["createdAt", "DESC"]],
+      include: [{
+        model: User,
+        as: 'assignedUser',
+        attributes: ['username']
+      }]
     });
-    return res.success(200, true, "Converted clients fetched", { items: leads });
+
+    const formattedLeads = leads.map(lead => ({
+      ...lead.toJSON(),
+      assigned_to: lead.assignedUser ? lead.assignedUser.username : null
+    }));
+
+    return res.success(200, true, "Converted clients fetched", { items: formattedLeads });
   } catch (err) {
     return res.error(500, false, "Failed to fetch converted clients", err.message);
   }
