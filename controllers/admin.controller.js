@@ -452,24 +452,41 @@ adminController.deleteClient = async (req, res) => {
 
 adminController.ConvertedClient = async (req, res) => {
   try {
-    const leads = await Lead.findAll({
-      where: { status: "converted" },
-      order: [["createdAt", "DESC"]],
-      include: [{
-        model: User,
-        as: 'assignedUser',
-        attributes: ['username']
-      }]
+    const { Op } = require('sequelize');
+
+    const convertedLeads = await Lead.findAll({
+      where: { status: 'converted' },
+      include: [{ model: User, as: 'assignedUser', attributes: ['id','username'] }],
+      order: [["createdAt","DESC"]]
     });
 
-    const formattedLeads = leads.map(lead => ({
-      ...lead.toJSON(),
-      assigned_to: lead.assignedUser ? lead.assignedUser.username : null
-    }));
+    const emails = convertedLeads.map(l => l.email).filter(Boolean).map(e => String(e).toLowerCase());
+    const phones = convertedLeads.map(l => l.phone).filter(Boolean);
 
-    return res.success(200, true, "Converted clients fetched", { items: formattedLeads });
+    let clients = [];
+    if (emails.length || phones.length) {
+      const orConds = [];
+      if (emails.length) orConds.push({ email: { [Op.in]: emails } });
+      if (phones.length) orConds.push({ phone: { [Op.in]: phones } });
+      clients = await Client.findAll({ where: { [Op.or]: orConds }, order: [["createdAt","DESC"]] });
+    }
+
+    const leadByKey = new Map();
+    convertedLeads.forEach(l => {
+      if (l.email) leadByKey.set(`E:${String(l.email).toLowerCase()}`, l);
+      if (l.phone) leadByKey.set(`P:${String(l.phone)}`, l);
+    });
+
+    const items = clients.map(c => {
+      const obj = c.toJSON();
+      const match = (c.email && leadByKey.get(`E:${String(c.email).toLowerCase()}`)) || (c.phone && leadByKey.get(`P:${String(c.phone)}`)) || null;
+      obj.assigned_to = match && match.assignedUser ? match.assignedUser.username : null;
+      return obj;
+    });
+
+    return res.success(200, true, 'Converted clients fetched', { items });
   } catch (err) {
-    return res.error(500, false, "Failed to fetch converted clients", err.message);
+    return res.error(500, false, 'Failed to fetch converted clients', err.message);
   }
 };
 

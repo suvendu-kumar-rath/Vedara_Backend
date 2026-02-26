@@ -10,8 +10,7 @@ const client = require ('./clients.model');
 leads.belongsTo(User, {
   foreignKey: { name: 'assigned_to', allowNull: true },
   as: 'assignedUser',
-  onUpdate: 'CASCADE',
-  onDelete: 'SET NULL'
+  constraints: false
 });
 
 module.exports = {
