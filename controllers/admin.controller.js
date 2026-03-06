@@ -8,7 +8,7 @@ const helpers = require("../utils/helper");
 const adminController = {};
 
 //Admin login
-adminController.login = async (req, res) => {
+    adminController.login = async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -316,6 +316,53 @@ adminController.createQuotation = async (req, res) => {
     quotation.global_scope = globalScope || null;
     quotation.deliverables = deliverables || null;
     quotation.room_wise_details = roomWiseDetails || null;
+
+    // compute section totals and pricing summary
+    const sumObjectAmounts = (obj) => {
+      if (!obj || typeof obj !== 'object') return 0;
+      const walk = (v) => {
+        if (Array.isArray(v)) {
+          return v.reduce((acc, item) => acc + walk(item), 0);
+        } else if (v && typeof v === 'object') {
+          let acc = 0;
+          const keys = Object.keys(v);
+          if ('total' in v && Number.isFinite(Number(v.total))) acc += Number(v.total);
+          if ('amount' in v && Number.isFinite(Number(v.amount))) acc += Number(v.amount);
+          keys.forEach((k) => {
+            if (k === 'total' || k === 'amount') return;
+            acc += walk(v[k]);
+          });
+          return acc;
+        } else if (Number.isFinite(Number(v))) {
+          return Number(v);
+        }
+        return 0;
+      };
+      return walk(obj);
+    };
+
+    const globalScopeTotal = sumObjectAmounts(quotation.global_scope);
+    const deliverablesTotal = sumObjectAmounts(quotation.deliverables);
+    const roomWiseTotal = sumObjectAmounts(quotation.room_wise_details);
+    const sectionsSubtotal = Number((globalScopeTotal + deliverablesTotal + roomWiseTotal).toFixed(2));
+    const computedSubtotal = sectionsSubtotal;
+    const computedFinal = Number((computedSubtotal * (1 - discount_percent / 100)).toFixed(2));
+
+    quotation.pricing_summary = {
+      totals: {
+        globalScopeTotal,
+        deliverablesTotal,
+        roomWiseTotal,
+        sectionsSubtotal,
+        computedSubtotal,
+        base_amount,
+        discount_percent,
+        final_amount: computedFinal,
+        computedFinal
+      }
+    };
+    quotation.final_amount = computedFinal;
+
     await quotation.save();
 
     return res.success(201, true, 'Quotation created', {
@@ -325,6 +372,8 @@ adminController.createQuotation = async (req, res) => {
       base_amount: quotation.base_amount,
       discount_percent: quotation.discount_percent,
       final_amount: quotation.final_amount,
+      grand_total: quotation.final_amount,
+      sections_subtotal: quotation.pricing_summary && quotation.pricing_summary.totals ? quotation.pricing_summary.totals.sectionsSubtotal : null,
       valid_until: quotation.valid_until,
       notes: quotation.notes,
       project_info: quotation.project_info,

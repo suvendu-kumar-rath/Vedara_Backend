@@ -3,9 +3,9 @@ const sequelize = require("../config/db");
 
 const Quotation = sequelize.define("Quotation",{
   id:{ type:DataTypes.INTEGER, primaryKey:true, autoIncrement:true },
-  client_id: DataTypes.INTEGER,
+  client_id: { type: DataTypes.INTEGER, allowNull: true },
   project_id: DataTypes.INTEGER,
-  base_amount: DataTypes.FLOAT,
+  base_amount: { type: DataTypes.FLOAT, allowNull: true },
   discount_percent: DataTypes.FLOAT,
   final_amount: DataTypes.FLOAT,
   valid_until: DataTypes.DATE,
@@ -53,6 +53,17 @@ const Quotation = sequelize.define("Quotation",{
     },
     set(val) {
       this.setDataValue('room_wise_details', val ? JSON.stringify(val) : null);
+    }
+  },
+  pricing_summary: {
+    type: DataTypes.TEXT('long'),
+    allowNull: true,
+    get() {
+      const v = this.getDataValue('pricing_summary');
+      try { return v ? JSON.parse(v) : null; } catch { return v; }
+    },
+    set(val) {
+      this.setDataValue('pricing_summary', val ? JSON.stringify(val) : null);
     }
   },
   status:{
