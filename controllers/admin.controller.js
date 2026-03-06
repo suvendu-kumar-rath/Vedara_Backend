@@ -254,9 +254,7 @@ adminController.createQuotation = async (req, res) => {
       deliverables,
       roomWiseDetails
     } = req.body;
-    if (!clientId || !baseAmount) {
-      return res.error(400, false, "clientId and baseAmount are required");
-    }
+    
     const client_id = Number(clientId);
     const project_id = projectId ? Number(projectId) : null;
     const base_amount = Number(baseAmount);
