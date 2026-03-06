@@ -245,7 +245,7 @@ adminController.createQuotation = async (req, res) => {
     const {
       clientId,
       projectId,
-      baseAmount,
+      //baseAmount,
       validUntil,
       discountPercent,
       notes,
@@ -257,11 +257,11 @@ adminController.createQuotation = async (req, res) => {
     
     const client_id = Number(clientId);
     const project_id = projectId ? Number(projectId) : null;
-    const base_amount = Number(baseAmount);
+    // const base_amount = Number(baseAmount);
     const discount_percent = discountPercent ? Number(discountPercent) : 0;
-    if (!Number.isFinite(base_amount) || base_amount <= 0) {
-      return res.error(400, false, "baseAmount must be a positive number");
-    }
+    // if (!Number.isFinite(base_amount) || base_amount <= 0) {
+    //   return res.error(400, false, "baseAmount must be a positive number");
+    // }
     if (!Number.isFinite(discount_percent) || discount_percent < 0 || discount_percent > 100) {
       return res.error(400, false, "discountPercent must be between 0 and 100");
     }
@@ -302,7 +302,7 @@ adminController.createQuotation = async (req, res) => {
     const quotation = await Quotation.create({
       client_id,
       project_id,
-      base_amount,
+      // base_amount,
       discount_percent,
       final_amount,
       valid_until,
@@ -353,7 +353,7 @@ adminController.createQuotation = async (req, res) => {
         roomWiseTotal,
         sectionsSubtotal,
         computedSubtotal,
-        base_amount,
+        // base_amount,
         discount_percent,
         final_amount: computedFinal,
         computedFinal
@@ -367,7 +367,7 @@ adminController.createQuotation = async (req, res) => {
       id: quotation.id,
       client_id: quotation.client_id,
       project_id: quotation.project_id,
-      base_amount: quotation.base_amount,
+      // base_amount: quotation.base_amount,
       discount_percent: quotation.discount_percent,
       final_amount: quotation.final_amount,
       grand_total: quotation.final_amount,
