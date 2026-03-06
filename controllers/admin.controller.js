@@ -245,7 +245,6 @@ adminController.createQuotation = async (req, res) => {
     const {
       clientId,
       projectId,
-      //baseAmount,
       validUntil,
       discountPercent,
       notes,
@@ -257,16 +256,12 @@ adminController.createQuotation = async (req, res) => {
     
     const client_id = Number(clientId);
     const project_id = projectId ? Number(projectId) : null;
-    // const base_amount = Number(baseAmount);
+
     const discount_percent = discountPercent ? Number(discountPercent) : 0;
-    // if (!Number.isFinite(base_amount) || base_amount <= 0) {
-    //   return res.error(400, false, "baseAmount must be a positive number");
-    // }
+
     if (!Number.isFinite(discount_percent) || discount_percent < 0 || discount_percent > 100) {
       return res.error(400, false, "discountPercent must be between 0 and 100");
     }
-    const final_amount = Number((base_amount * (1 - discount_percent / 100)).toFixed(2));
-
     let valid_until = null;
     if (validUntil) {
       const s = String(validUntil).trim();
@@ -299,23 +294,7 @@ adminController.createQuotation = async (req, res) => {
       }
     }
 
-    const quotation = await Quotation.create({
-      client_id,
-      project_id,
-      // base_amount,
-      discount_percent,
-      final_amount,
-      valid_until,
-      notes: notes ? String(notes).trim() : null,
-      status: 'sent'
-    });
-
-    quotation.project_info = projectInfo || null;
-    quotation.global_scope = globalScope || null;
-    quotation.deliverables = deliverables || null;
-    quotation.room_wise_details = roomWiseDetails || null;
-
-    // compute section totals and pricing summary
+    // compute section totals and pricing summary before creating the record
     const sumObjectAmounts = (obj) => {
       if (!obj || typeof obj !== 'object') return 0;
       const walk = (v) => {
@@ -339,35 +318,45 @@ adminController.createQuotation = async (req, res) => {
       return walk(obj);
     };
 
-    const globalScopeTotal = sumObjectAmounts(quotation.global_scope);
-    const deliverablesTotal = sumObjectAmounts(quotation.deliverables);
-    const roomWiseTotal = sumObjectAmounts(quotation.room_wise_details);
+    const globalScopeTotal = sumObjectAmounts(globalScope || null);
+    const deliverablesTotal = sumObjectAmounts(deliverables || null);
+    const roomWiseTotal = sumObjectAmounts(roomWiseDetails || null);
     const sectionsSubtotal = Number((globalScopeTotal + deliverablesTotal + roomWiseTotal).toFixed(2));
     const computedSubtotal = sectionsSubtotal;
     const computedFinal = Number((computedSubtotal * (1 - discount_percent / 100)).toFixed(2));
 
-    quotation.pricing_summary = {
-      totals: {
-        globalScopeTotal,
-        deliverablesTotal,
-        roomWiseTotal,
-        sectionsSubtotal,
-        computedSubtotal,
-        // base_amount,
-        discount_percent,
-        final_amount: computedFinal,
-        computedFinal
-      }
-    };
-    quotation.final_amount = computedFinal;
+    const quotation = await Quotation.create({
+      client_id,
+      project_id,
 
-    await quotation.save();
+      discount_percent,
+      final_amount: computedFinal,
+      valid_until,
+      notes: notes ? String(notes).trim() : null,
+      status: 'sent',
+      project_info: projectInfo || null,
+      global_scope: globalScope || null,
+      deliverables: deliverables || null,
+      room_wise_details: roomWiseDetails || null,
+      pricing_summary: {
+        totals: {
+          globalScopeTotal,
+          deliverablesTotal,
+          roomWiseTotal,
+          sectionsSubtotal,
+          computedSubtotal,
+          discount_percent,
+          final_amount: computedFinal,
+          computedFinal
+        }
+      }
+    });
 
     return res.success(201, true, 'Quotation created', {
       id: quotation.id,
       client_id: quotation.client_id,
       project_id: quotation.project_id,
-      // base_amount: quotation.base_amount,
+
       discount_percent: quotation.discount_percent,
       final_amount: quotation.final_amount,
       grand_total: quotation.final_amount,
@@ -381,6 +370,7 @@ adminController.createQuotation = async (req, res) => {
       status: quotation.status
     });
   } catch (err) {
+    console.error('CreateQuotation error:', err);
     return res.error(500, false, 'Quotation creation failed', err.message);
   }
 };

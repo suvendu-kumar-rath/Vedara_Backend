@@ -5,7 +5,6 @@ const Quotation = sequelize.define("Quotation",{
   id:{ type:DataTypes.INTEGER, primaryKey:true, autoIncrement:true },
   client_id: { type: DataTypes.INTEGER, allowNull: true },
   project_id: DataTypes.INTEGER,
-  base_amount: { type: DataTypes.FLOAT, allowNull: true },
   discount_percent: DataTypes.FLOAT,
   final_amount: DataTypes.FLOAT,
   valid_until: DataTypes.DATE,

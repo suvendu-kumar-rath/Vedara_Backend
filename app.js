@@ -41,7 +41,7 @@ async function startServer() {
   try {
     await sequelize.authenticate();
     console.log("Database connection establish successfully");
-    await sequelize.sync({ alter:true });
+    await sequelize.sync({ alter:false });
     console.log('All models were synchronized successfully.');
 
     app.listen(port, () => {
