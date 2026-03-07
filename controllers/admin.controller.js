@@ -516,8 +516,11 @@ adminController.ConvertedClient = async (req, res) => {
 
     const items = clients.map(c => {
       const obj = c.toJSON();
+      
       const match = (c.email && leadByKey.get(`E:${String(c.email).toLowerCase()}`)) || (c.phone && leadByKey.get(`P:${String(c.phone)}`)) || null;
       obj.assigned_to = match && match.assignedUser ? match.assignedUser.username : null;
+      obj.property_type = match ? match.propertyType : null;
+      obj.address = match ? match.city : null;
       return obj;
     });
 
