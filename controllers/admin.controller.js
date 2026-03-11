@@ -8,7 +8,7 @@ const helpers = require("../utils/helper");
 const adminController = {};
 
 //Admin login
-    adminController.login = async (req, res) => {
+adminController.login = async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -236,6 +236,28 @@ adminController.convertLeadToClient = async (req, res) => {
     });
   } catch (err) {
     return res.error(500, false, "Conversion failed", err.message);
+  }
+};
+
+// add a simple note to a lead (uses logged-in user id)
+adminController.addLeadNote = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { note } = req.body || {};
+    if (!id || !note || String(note).trim().length === 0) {
+      return res.error(400, false, 'lead id and note are required');
+    }
+    const lead = await Lead.findByPk(Number(id));
+    if (!lead) {
+      return res.error(404, false, 'Lead not found');
+    }
+    const uid = req.user && req.user.id ? req.user.id : null;
+    const entry = uid !== null ? `[${uid}] ${String(note).trim()}` : String(note).trim();
+    lead.notes = lead.notes ? `${lead.notes}\n${entry}` : entry;
+    await lead.save();
+    return res.success(200, true, 'Lead note added', { id: lead.id });
+  } catch (err) {
+    return res.error(500, false, 'Failed to add lead note', err.message);
   }
 };
 

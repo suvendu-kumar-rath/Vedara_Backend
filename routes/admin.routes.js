@@ -8,6 +8,7 @@ router.post("/loginforall", adminController.login);
 router.post("/users", checkUserAuth, checkRole('admin'), adminController.createUser);
 router.post("/leads", checkUserAuth, checkRole(['admin','lead']), adminController.addLead);
 router.get("/leads", checkUserAuth, checkRole(['admin','lead']), adminController.getLeads);
+router.post("/leads/:id/notes", checkUserAuth, checkRole(['admin','lead']), adminController.addLeadNote);
 
 router.post("/leads/:id/convert", checkUserAuth, checkRole(['admin','lead']), adminController.convertLeadToClient);
 router.post("/quotations", checkUserAuth, checkRole(['admin','lead']), adminController.createQuotation);
