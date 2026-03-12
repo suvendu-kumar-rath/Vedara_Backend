@@ -261,6 +261,25 @@ adminController.addLeadNote = async (req, res) => {
   }
 };
 
+// get all notes for a lead
+adminController.getLeadNotes = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.error(400, false, 'lead id is required');
+    const lead = await Lead.findByPk(Number(id));
+    if (!lead) return res.error(404, false, 'Lead not found');
+    const raw = lead.notes ? String(lead.notes) : '';
+    const parts = raw.split(/\r?\n+/).map(s => s.trim()).filter(Boolean);
+    const notes = parts.map(l => {
+      const m = l.match(/^\[(\d+)\]\s*(.*)$/);
+      return m ? { user_id: Number(m[1]), note: m[2] } : { user_id: null, note: l };
+    });
+    return res.success(200, true, 'Lead notes', { id: lead.id, notes });
+  } catch (err) {
+    return res.error(500, false, 'Failed to fetch lead notes', err.message);
+  }
+};
+
 //create a Quotation for a client (production-ready with scope blocks)
 adminController.createQuotation = async (req, res) => {
   try {
@@ -356,10 +375,10 @@ adminController.createQuotation = async (req, res) => {
       valid_until,
       notes: notes ? String(notes).trim() : null,
       status: 'sent',
-      project_info: projectInfo || null,
-      global_scope: globalScope || null,
-      deliverables: deliverables || null,
-      room_wise_details: roomWiseDetails || null,
+      project_info: projectInfo ? (projectInfo.description !== undefined ? projectInfo : { ...projectInfo, description: '' }) : { description: '' },
+      global_scope: globalScope ? (globalScope.description !== undefined ? globalScope : { ...globalScope, description: '' }) : { description: '' },
+      deliverables: deliverables ? (deliverables.description !== undefined ? deliverables : { ...deliverables, description: '' }) : { description: '' },
+      room_wise_details: roomWiseDetails ? (roomWiseDetails.description !== undefined ? roomWiseDetails : { ...roomWiseDetails, description: '' }) : { description: '' },
       pricing_summary: {
         totals: {
           globalScopeTotal,
@@ -394,6 +413,36 @@ adminController.createQuotation = async (req, res) => {
   } catch (err) {
     console.error('CreateQuotation error:', err);
     return res.error(500, false, 'Quotation creation failed', err.message);
+  }
+};
+
+// Dashboard overview
+adminController.getDashboard = async (req, res) => {
+  try {
+    const { Op } = require('sequelize');
+    const totalLeads = await Lead.count();
+    const totalClients = await Client.count();
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfNext = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const monthlyRevenue = await Quotation.sum('final_amount', {
+      where: { status: 'approved', createdAt: { [Op.gte]: startOfMonth, [Op.lt]: startOfNext } }
+    }) || 0;
+
+    const recentLeads = await Lead.findAll({ order: [['createdAt','DESC']], limit: 5 });
+    const recentClients = await Client.findAll({ order: [['createdAt','DESC']], limit: 5 });
+    const recentQuotations = await Quotation.findAll({ order: [['updatedAt','DESC']], limit: 5 });
+
+    const items = [];
+    recentLeads.forEach(l => items.push({ type: 'lead', id: l.id, title: l.name, time: l.createdAt, meta: { status: l.status } }));
+    recentClients.forEach(c => items.push({ type: 'client', id: c.id, title: c.name, time: c.createdAt, meta: {} }));
+    recentQuotations.forEach(q => items.push({ type: 'quotation', id: q.id, title: `Quotation #${q.id}`, time: q.updatedAt, meta: { status: q.status, amount: q.final_amount } }));
+    items.sort((a,b)=> new Date(b.time) - new Date(a.time));
+    const recentActivity = items.slice(0, 10);
+
+    return res.success(200, true, 'Dashboard', { totals: { leads: totalLeads, clients: totalClients, monthlyRevenue }, recentActivity });
+  } catch (err) {
+    return res.error(500, false, 'Failed to load dashboard', err.message);
   }
 };
 
